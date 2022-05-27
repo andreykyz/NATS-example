@@ -65,18 +65,21 @@ func NewPubSub(ctx context.Context, c *config.Config) *PubSub {
 }
 
 func (ps *PubSub) GetMsgChan(ctx context.Context) chan *Message {
-
 	if sub, err := ps.js.PullSubscribe(fmt.Sprintf("%s.*", ps.subj), ps.consumer); err == nil {
 		go func() {
 			defer close(ps.msg)
+			defer sub.Unsubscribe()
 			for {
 				message := &Message{}
-				if bMsg, err := sub.Fetch(1); err == nil {
-					log.Info(len(bMsg))
-					if _, err := message.UnmarshalMsg(bMsg[0].Data); err == nil {
-						ps.msg <- message
-					} else {
-						log.Error(err)
+				if bMsg, err := sub.Fetch(5); err == nil {
+					for _, bMsg := range bMsg {
+						bMsg.Ack()
+						if _, err := message.UnmarshalMsg(bMsg.Data); err == nil {
+							log.Infof("recive for %s", bMsg.Subject)
+							ps.msg <- message
+						} else {
+							log.Error(err)
+						}
 					}
 				} else if err == nats.ErrTimeout {
 					log.Info(err)
