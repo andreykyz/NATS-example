@@ -71,7 +71,7 @@ func (ps *PubSub) GetMsgChan(ctx context.Context) chan *Message {
 			defer sub.Unsubscribe()
 			for {
 				message := &Message{}
-				if bMsg, err := sub.Fetch(5); err == nil {
+				if bMsg, err := sub.Fetch(1); err == nil {
 					for _, bMsg := range bMsg {
 						bMsg.Ack()
 						if _, err := message.UnmarshalMsg(bMsg.Data); err == nil {
